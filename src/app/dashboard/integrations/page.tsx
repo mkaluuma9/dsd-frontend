@@ -1,106 +1,275 @@
+'use client';
+
 import * as React from 'react';
-import type { Metadata } from 'next';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import Pagination from '@mui/material/Pagination';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
-import Grid from '@mui/material/Unstable_Grid2';
-import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
-import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
-import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
-import dayjs from 'dayjs';
+import {
+  Button,
+  FormControl,
+  FormHelperText,
+  Grid,
+  InputLabel,
+  MenuItem,
+  OutlinedInput,
+  Select,
+  Stack,
+  Typography,
+} from '@mui/material';
+import { Controller, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 
-import { config } from '@/config';
-import { IntegrationCard } from '@/components/dashboard/integrations/integrations-card';
-import type { Integration } from '@/components/dashboard/integrations/integrations-card';
-import { CompaniesFilters } from '@/components/dashboard/integrations/integrations-filters';
+// Zod schema to validate form
+const schema = z.object({
+  full_name: z.string().min(1, { message: 'Full name is required' }),
+  phone_number: z.string().min(10, { message: 'Phone number is required' }),
+  number_plate: z.string().min(1, { message: 'Number plate is required' }),
+  stage: z.string().min(1, { message: 'Stage is required' }),
+  nin: z.string().min(1, { message: 'NIN is required' }),
+  driving_permit_number: z.string().optional(),
+  region: z.string().min(1, { message: 'Region is required' }),
+  position_at_stage: z.string().min(1, { message: 'Position is required' }),
+});
 
-export const metadata = { title: `Integrations | Dashboard | ${config.site.name}` } satisfies Metadata;
+type Values = z.infer<typeof schema>;
 
-const integrations = [
-  {
-    id: 'INTEG-006',
-    title: 'Dropbox',
-    description: 'Dropbox is a file hosting service that offers cloud storage, file synchronization, a personal cloud.',
-    logo: '/assets/logo-dropbox.png',
-    installs: 594,
-    updatedAt: dayjs().subtract(12, 'minute').toDate(),
-  },
-  {
-    id: 'INTEG-005',
-    title: 'Medium Corporation',
-    description: 'Medium is an online publishing platform developed by Evan Williams, and launched in August 2012.',
-    logo: '/assets/logo-medium.png',
-    installs: 625,
-    updatedAt: dayjs().subtract(43, 'minute').subtract(1, 'hour').toDate(),
-  },
-  {
-    id: 'INTEG-004',
-    title: 'Slack',
-    description: 'Slack is a cloud-based set of team collaboration tools and services, founded by Stewart Butterfield.',
-    logo: '/assets/logo-slack.png',
-    installs: 857,
-    updatedAt: dayjs().subtract(50, 'minute').subtract(3, 'hour').toDate(),
-  },
-  {
-    id: 'INTEG-003',
-    title: 'Lyft',
-    description: 'Lyft is an on-demand transportation company based in San Francisco, California.',
-    logo: '/assets/logo-lyft.png',
-    installs: 406,
-    updatedAt: dayjs().subtract(7, 'minute').subtract(4, 'hour').subtract(1, 'day').toDate(),
-  },
-  {
-    id: 'INTEG-002',
-    title: 'GitHub',
-    description: 'GitHub is a web-based hosting service for version control of code using Git.',
-    logo: '/assets/logo-github.png',
-    installs: 835,
-    updatedAt: dayjs().subtract(31, 'minute').subtract(4, 'hour').subtract(5, 'day').toDate(),
-  },
-  {
-    id: 'INTEG-001',
-    title: 'Squarespace',
-    description: 'Squarespace provides software as a service for website building and hosting. Headquartered in NYC.',
-    logo: '/assets/logo-squarespace.png',
-    installs: 435,
-    updatedAt: dayjs().subtract(25, 'minute').subtract(6, 'hour').subtract(6, 'day').toDate(),
-  },
-] satisfies Integration[];
+const defaultValues: Values = {
+  full_name: '',
+  phone_number: '',
+  number_plate: '',
+  stage: '',
+  nin: '',
+  driving_permit_number: '',
+  region: '',
+  position_at_stage: '',
+};
 
-export default function Page(): React.JSX.Element {
+const inputStyle = {
+  height: 40,
+  fontSize: '0.875rem',
+  padding: '10px',
+};
+
+const labelStyle = {
+  top: '-6px',
+  fontSize: '0.875rem',
+};
+
+export default function RegisterForm(): React.JSX.Element {
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm<Values>({ defaultValues, resolver: zodResolver(schema) });
+
+  // Fetch select options from backend
+  const [regions, setRegions] = React.useState<any[]>([]);
+  const [stages, setStages] = React.useState<any[]>([]);
+  const [positions, setPositions] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    fetch('http://127.0.0.1:8000/regions/')
+      .then((res) => res.json())
+      .then(setRegions);
+    fetch('http://127.0.0.1:8000/stages/')
+      .then((res) => res.json())
+      .then(setStages);
+    fetch('http://127.0.0.1:8000/positions/')
+      .then((res) => res.json())
+      .then(setPositions);
+  }, []);
+
+  const onSubmit = async (data: Values) => {
+    try {
+      // Cast stage, region, and position_at_stage to integers (their primary key values)
+      const payload = {
+        ...data,
+        stage: parseInt(data.stage, 10),
+        region: parseInt(data.region, 10),
+        position_at_stage: parseInt(data.position_at_stage, 10),
+      };
+
+      const response = await fetch('http://127.0.0.1:8000/riders/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) throw new Error('Registration failed');
+      const rider = await response.json();
+      console.log('Registered rider:', rider);
+      reset(); // clear the form
+      alert('Rider registered successfully!');
+    } catch (err) {
+      console.error(err);
+      alert('Something went wrong. Check console for errors.');
+    }
+  };
+
   return (
-    <Stack spacing={3}>
-      <Stack direction="row" spacing={3}>
-        <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-          <Typography variant="h4">Integrations</Typography>
-          <Stack sx={{ alignItems: 'center' }} direction="row" spacing={1}>
-            <Button color="inherit" startIcon={<UploadIcon fontSize="var(--icon-fontSize-md)" />}>
-              Import
-            </Button>
-            <Button color="inherit" startIcon={<DownloadIcon fontSize="var(--icon-fontSize-md)" />}>
-              Export
-            </Button>
-          </Stack>
-        </Stack>
-        <div>
-          <Button startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />} variant="contained">
-            Add
-          </Button>
-        </div>
-      </Stack>
-      <CompaniesFilters />
-      <Grid container spacing={3}>
-        {integrations.map((integration) => (
-          <Grid key={integration.id} lg={4} md={6} xs={12}>
-            <IntegrationCard integration={integration} />
+    <Stack spacing={2}>
+      <Typography variant="h4">
+      Add Driver
+      </Typography>
+      {/* <Typography color="text.secondary" variant="body2">
+        Be part of Union Boda and National Boda Riders Database
+      </Typography> */}
+
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <Grid container spacing={3}>
+          {/* Full Name */}
+          <Grid item xs={12} sm={6}>
+            <Controller
+              name="full_name"
+              control={control}
+              render={({ field }) => (
+                <FormControl fullWidth error={!!errors.full_name}>
+                  <InputLabel sx={labelStyle}>Full Name</InputLabel>
+                  <OutlinedInput {...field} label="Full Name" sx={inputStyle} />
+                  {errors.full_name && <FormHelperText>{errors.full_name.message}</FormHelperText>}
+                </FormControl>
+              )}
+            />
           </Grid>
-        ))}
-      </Grid>
-      <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-        <Pagination count={3} size="small" />
-      </Box>
+
+          {/* Phone Number */}
+          <Grid item xs={12} sm={6}>
+            <Controller
+              name="phone_number"
+              control={control}
+              render={({ field }) => (
+                <FormControl fullWidth error={!!errors.phone_number}>
+                  <InputLabel sx={labelStyle}>Phone Number</InputLabel>
+                  <OutlinedInput {...field} label="Phone Number" sx={inputStyle} />
+                  {errors.phone_number && (
+                    <FormHelperText>{errors.phone_number.message}</FormHelperText>
+                  )}
+                </FormControl>
+              )}
+            />
+          </Grid>
+
+          {/* Number Plate */}
+          <Grid item xs={12} sm={6}>
+            <Controller
+              name="number_plate"
+              control={control}
+              render={({ field }) => (
+                <FormControl fullWidth error={!!errors.number_plate}>
+                  <InputLabel sx={labelStyle}>Number Plate</InputLabel>
+                  <OutlinedInput {...field} label="Number Plate" sx={inputStyle} />
+                  {errors.number_plate && (
+                    <FormHelperText>{errors.number_plate.message}</FormHelperText>
+                  )}
+                </FormControl>
+              )}
+            />
+          </Grid>
+
+          {/* NIN */}
+          <Grid item xs={12} sm={6}>
+            <Controller
+              name="nin"
+              control={control}
+              render={({ field }) => (
+                <FormControl fullWidth error={!!errors.nin}>
+                  <InputLabel sx={labelStyle}>National ID Number (NIN)</InputLabel>
+                  <OutlinedInput {...field} label="National ID Number" sx={inputStyle} />
+                  {errors.nin && <FormHelperText>{errors.nin.message}</FormHelperText>}
+                </FormControl>
+              )}
+            />
+          </Grid>
+
+          {/* Driving Permit Number */}
+          <Grid item xs={12} sm={6}>
+            <Controller
+              name="driving_permit_number"
+              control={control}
+              render={({ field }) => (
+                <FormControl fullWidth>
+                  <InputLabel sx={labelStyle}>Driving Permit Number (optional)</InputLabel>
+                  <OutlinedInput {...field} label="Driving Permit Number" sx={inputStyle} />
+                </FormControl>
+              )}
+            />
+          </Grid>
+
+          {/* Stage (Dropdown) */}
+          <Grid item xs={12} sm={6}>
+            <Controller
+              name="stage"
+              control={control}
+              render={({ field }) => (
+                <FormControl fullWidth error={!!errors.stage}>
+                  <InputLabel sx={labelStyle}>Stage</InputLabel>
+                  <Select {...field} label="Stage" sx={inputStyle}>
+                    <MenuItem value="">Select Stage</MenuItem>
+                    {stages.map((stage) => (
+                      <MenuItem key={stage.name} value={stage.name}>
+                        {stage.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  {errors.stage && <FormHelperText>{errors.stage.message}</FormHelperText>}
+                </FormControl>
+              )}
+            />
+          </Grid>
+
+          {/* Region (Dropdown) */}
+          <Grid item xs={12} sm={6}>
+            <Controller
+              name="region"
+              control={control}
+              render={({ field }) => (
+                <FormControl fullWidth error={!!errors.region}>
+                  <InputLabel sx={labelStyle}>Region</InputLabel>
+                  <Select {...field} label="Region" sx={inputStyle}>
+                    <MenuItem value="">Select Region</MenuItem>
+                    {regions.map((region) => (
+                      <MenuItem key={region.name} value={region.name}>
+                        {region.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  {errors.region && <FormHelperText>{errors.region.message}</FormHelperText>}
+                </FormControl>
+              )}
+            />
+          </Grid>
+
+          {/* Position at Stage (Dropdown) */}
+          <Grid item xs={12} sm={6}>
+            <Controller
+              name="position_at_stage"
+              control={control}
+              render={({ field }) => (
+                <FormControl fullWidth error={!!errors.position_at_stage}>
+                  <InputLabel sx={labelStyle}>Position at Stage</InputLabel>
+                  <Select {...field} label="Position at Stage" sx={inputStyle}>
+                    <MenuItem value="">Select Position</MenuItem>
+                    {positions.map((pos) => (
+                      <MenuItem key={pos.title} value={pos.title}>
+                        {pos.title}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  {errors.position_at_stage && (
+                    <FormHelperText>{errors.position_at_stage.message}</FormHelperText>
+                  )}
+                </FormControl>
+              )}
+            />
+          </Grid>
+
+          {/* Submit Button */}
+          <Grid item xs={12}>
+            <Button type="submit" variant="contained" fullWidth sx={{ height: 44 }}>
+              Register
+            </Button>
+          </Grid>
+        </Grid>
+      </form>
     </Stack>
   );
 }

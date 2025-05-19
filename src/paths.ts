@@ -11,3 +11,4 @@ export const paths = {
   },
   errors: { notFound: '/errors/not-found' },
 } as const;
+

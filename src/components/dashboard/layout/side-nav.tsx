@@ -39,7 +39,9 @@ export function SideNav(): React.JSX.Element {
         color: 'var(--SideNav-color)',
         display: { xs: 'none', lg: 'flex' },
         flexDirection: 'column',
-        height: '100%',
+        //height: '100%',
+        height: '100vh',
+        overflowY: 'auto',
         left: 0,
         maxWidth: '100%',
         position: 'fixed',
@@ -50,11 +52,12 @@ export function SideNav(): React.JSX.Element {
         '&::-webkit-scrollbar': { display: 'none' },
       }}
     >
+      {/* Logo and Workspace */}
       <Stack spacing={2} sx={{ p: 3 }}>
         <Box component={RouterLink} href={paths.home} sx={{ display: 'inline-flex' }}>
-          <Logo color="light" height={32} width={122} />
+          <Logo color="light" height={40} width={122} />
         </Box>
-        <Box
+        {/* <Box
           sx={{
             alignItems: 'center',
             backgroundColor: 'var(--mui-palette-neutral-950)',
@@ -74,15 +77,21 @@ export function SideNav(): React.JSX.Element {
             </Typography>
           </Box>
           <CaretUpDownIcon />
-        </Box>
+        </Box> */}
       </Stack>
-      <Divider sx={{ borderColor: 'var(--mui-palette-neutral-700)' }} />
+
+      <Divider sx={{ borderColor: 'var(--mui-palette-neutral-700)', mb:3}} />
+
+      {/* Navigation Items */}
       <Box component="nav" sx={{ flex: '1 1 auto', p: '12px' }}>
-        {renderNavItems({ pathname, items: navItems })}
+        <NavList items={navItems} pathname={pathname} />
       </Box>
+
       <Divider sx={{ borderColor: 'var(--mui-palette-neutral-700)' }} />
+
+      {/* Footer Promo */}
       <Stack spacing={2} sx={{ p: '12px' }}>
-        <div>
+        {/* <div>
           <Typography color="var(--mui-palette-neutral-100)" variant="subtitle2">
             Need more features?
           </Typography>
@@ -108,24 +117,44 @@ export function SideNav(): React.JSX.Element {
           variant="contained"
         >
           Pro version
-        </Button>
+        </Button> */}
       </Stack>
     </Box>
   );
 }
 
-function renderNavItems({ items = [], pathname }: { items?: NavItemConfig[]; pathname: string }): React.JSX.Element {
-  const children = items.reduce((acc: React.ReactNode[], curr: NavItemConfig): React.ReactNode[] => {
-    const { key, ...item } = curr;
-
-    acc.push(<NavItem key={key} pathname={pathname} {...item} />);
-
-    return acc;
-  }, []);
-
+// Render grouped nav items with optional section headings
+function NavList({ items = [], pathname }: { items?: NavItemConfig[]; pathname: string }) {
   return (
-    <Stack component="ul" spacing={1} sx={{ listStyle: 'none', m: 0, p: 0 }}>
-      {children}
+    <Stack component="ul" spacing={2} sx={{ listStyle: 'none', m: 0, p: 0 }}>
+      {items.map(({ key, items: children, ...item }) =>
+        children ? (
+          <li key={key}>
+            <Typography
+              variant="overline"
+              sx={{
+                color: 'var(--NavItem-color)',
+                fontWeight: 600,
+                fontSize: '0.75rem',
+                lineHeight: 1,
+                letterSpacing: '0.5px',
+                textTransform: 'uppercase',
+                px: 2,
+                mb: 1,
+              }}
+            >
+              {item.title}
+            </Typography>
+            <Stack component="ul" spacing={0} sx={{ listStyle: 'none', m: 0, p: 0 }}>
+              {children.map(({ key: childKey, ...childItem }) => (
+                <NavItem key={childKey} pathname={pathname} {...childItem} />
+              ))}
+            </Stack>
+          </li>
+        ) : (
+          <NavItem key={key} pathname={pathname} {...item} />
+        )
+      )}
     </Stack>
   );
 }
@@ -166,18 +195,21 @@ function NavItem({ disabled, external, href, icon, matcher, pathname, title }: N
             color: 'var(--NavItem-disabled-color)',
             cursor: 'not-allowed',
           }),
-          ...(active && { bgcolor: 'var(--NavItem-active-background)', color: 'var(--NavItem-active-color)' }),
+          ...(active && {
+            bgcolor: 'var(--NavItem-active-background)',
+            color: 'var(--NavItem-active-color)',
+          }),
         }}
       >
-        <Box sx={{ alignItems: 'center', display: 'flex', justifyContent: 'center', flex: '0 0 auto' }}>
-          {Icon ? (
+        {Icon && (
+          <Box sx={{ alignItems: 'center', display: 'flex', justifyContent: 'center', flex: '0 0 auto' }}>
             <Icon
               fill={active ? 'var(--NavItem-icon-active-color)' : 'var(--NavItem-icon-color)'}
               fontSize="var(--icon-fontSize-md)"
               weight={active ? 'fill' : undefined}
             />
-          ) : null}
-        </Box>
+          </Box>
+        )}
         <Box sx={{ flex: '1 1 auto' }}>
           <Typography
             component="span"

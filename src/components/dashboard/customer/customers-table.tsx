@@ -18,37 +18,32 @@ import dayjs from 'dayjs';
 
 import { useSelection } from '@/hooks/use-selection';
 
-function noop(): void {
-  // do nothing
+function noop(): void {}
+
+export interface Rider {
+  id: number;
+  full_name: string;
+  phone_number: string;
+  number_plate: string;
+  region_name: string;
+  stage_name: string;
+  date_registered: string;
 }
 
-export interface Customer {
-  id: string;
-  avatar: string;
-  name: string;
-  email: string;
-  address: { city: string; state: string; country: string; street: string };
-  phone: string;
-  createdAt: Date;
+interface RidersTableProps {
+  count: number;
+  page: number;
+  rowsPerPage: number;
+  rows: Rider[];
 }
 
-interface CustomersTableProps {
-  count?: number;
-  page?: number;
-  rows?: Customer[];
-  rowsPerPage?: number;
-}
-
-export function CustomersTable({
-  count = 0,
-  rows = [],
-  page = 0,
-  rowsPerPage = 0,
-}: CustomersTableProps): React.JSX.Element {
-  const rowIds = React.useMemo(() => {
-    return rows.map((customer) => customer.id);
-  }, [rows]);
-
+export function RidersTable({
+  count,
+  page,
+  rowsPerPage,
+  rows,
+}: RidersTableProps): React.JSX.Element {
+  const rowIds = React.useMemo(() => rows.map((r) => r.id.toString()), [rows]);
   const { selectAll, deselectAll, selectOne, deselectOne, selected } = useSelection(rowIds);
 
   const selectedSome = (selected?.size ?? 0) > 0 && (selected?.size ?? 0) < rows.length;
@@ -64,52 +59,44 @@ export function CustomersTable({
                 <Checkbox
                   checked={selectedAll}
                   indeterminate={selectedSome}
-                  onChange={(event) => {
-                    if (event.target.checked) {
-                      selectAll();
-                    } else {
-                      deselectAll();
-                    }
-                  }}
+                  onChange={(e) => (e.target.checked ? selectAll() : deselectAll())}
                 />
               </TableCell>
               <TableCell>Name</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Location</TableCell>
-              <TableCell>Phone</TableCell>
-              <TableCell>Signed Up</TableCell>
+              <TableCell>Phone Number</TableCell>
+              <TableCell>Number Plate</TableCell>
+              <TableCell>Region</TableCell>
+              <TableCell>Stage</TableCell>
+              <TableCell>Registered</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {rows.map((row) => {
-              const isSelected = selected?.has(row.id);
+            {rows.map((rider) => {
+              const isSelected = selected?.has(rider.id.toString());
 
               return (
-                <TableRow hover key={row.id} selected={isSelected}>
+                <TableRow hover key={rider.id} selected={isSelected}>
                   <TableCell padding="checkbox">
                     <Checkbox
                       checked={isSelected}
-                      onChange={(event) => {
-                        if (event.target.checked) {
-                          selectOne(row.id);
-                        } else {
-                          deselectOne(row.id);
-                        }
-                      }}
+                      onChange={(e) =>
+                        e.target.checked
+                          ? selectOne(rider.id.toString())
+                          : deselectOne(rider.id.toString())
+                      }
                     />
                   </TableCell>
                   <TableCell>
-                    <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
-                      <Avatar src={row.avatar} />
-                      <Typography variant="subtitle2">{row.name}</Typography>
+                    <Stack direction="row" spacing={2} alignItems="center">
+                      {/* <Avatar>{rider.full_name.charAt(0)}</Avatar> */}
+                      <Typography variant="subtitle2">{rider.full_name}</Typography>
                     </Stack>
                   </TableCell>
-                  <TableCell>{row.email}</TableCell>
-                  <TableCell>
-                    {row.address.city}, {row.address.state}, {row.address.country}
-                  </TableCell>
-                  <TableCell>{row.phone}</TableCell>
-                  <TableCell>{dayjs(row.createdAt).format('MMM D, YYYY')}</TableCell>
+                  <TableCell>{rider.phone_number}</TableCell>
+                  <TableCell>{rider.number_plate}</TableCell>
+                  <TableCell>{rider.region_name}</TableCell>
+                  <TableCell>{rider.stage_name}</TableCell>
+                  <TableCell>{dayjs(rider.date_registered).format('MMM D, YYYY')}</TableCell>
                 </TableRow>
               );
             })}
@@ -120,10 +107,10 @@ export function CustomersTable({
       <TablePagination
         component="div"
         count={count}
-        onPageChange={noop}
-        onRowsPerPageChange={noop}
         page={page}
         rowsPerPage={rowsPerPage}
+        onPageChange={noop}
+        onRowsPerPageChange={noop}
         rowsPerPageOptions={[5, 10, 25]}
       />
     </Card>
